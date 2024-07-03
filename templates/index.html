@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Noname Journal</title>
+    <style>
+        :root {
+            --red: #ff0000;
+            --grey: #808080;
+            --white: #ffffff;
+            --off-white: #f0f0f0;
+            --dark: #1a1a1a;
+        }
+
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 10px; 
+            padding: 10px; 
+            height: 100vh;
+        }
+
+        .app {
+            height: 100%;
+        }
+
+        .editor {
+            height: calc(100% - 160px);
+            margin-top: 80px;
+            margin-left: 20px;
+            position: relative;
+            line-height: 1.65;
+            font-size: 14pt;
+        }
+
+        .editor textarea {
+            display: block;
+            overflow: auto;
+            width: 100%;
+            padding: 0;
+            height: 100%;
+            margin: 0px;
+            border: none;
+            outline: none;
+            background: transparent;
+            line-height: 1.65;
+            font-family: Merriweather, serif;
+            caret-color: red;
+            font-size: 14pt;
+            resize: none;
+            transition: all .1s linear;
+        }
+
+        .editor textarea::selection {
+            color: white;
+            background: red;
+        }
+
+        .editor textarea::-webkit-scrollbar { 
+            display: none; 
+        }
+
+        .editor.blur textarea {
+            filter: blur(2px);
+        }
+
+        .editor .hardcore {
+            font-size: 300pt;
+            font-family: Merriweather, serif;
+            text-align: center;
+            color: var(--grey);
+            width: 100%;
+            position: absolute;
+            height: calc(100% - 60px);
+            margin: 0px auto;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        .editor:before, .editor:after {
+            content: "";
+            width: 100%;
+            height: 6em;
+            display: block;
+            position: absolute;
+            left: 0px;
+            top: 0;
+            pointer-events: none;
+            transition: all 2s linear;
+            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 100%);
+        }
+
+        .editor.cut-top:before {
+            background: linear-gradient(to bottom, var(--white) 0%, rgba(255,255,255,0) 100%);
+        }
+
+        .editor.cut-bottom:after {
+            top: auto; 
+            bottom: 0px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, var(--white) 100%);
+        }
+
+        .app.night-mode .editor textarea { 
+            color: var(--off-white); 
+        }
+
+        .app.night-mode .editor .hardcore { 
+            color: var(--off-white); 
+        }
+
+        .app.night-mode .editor.cut-top:before { 
+            background: linear-gradient(to bottom, var(--dark) 0%, transparent 100%); 
+        }
+
+        .app.night-mode .editor.cut-bottom:after { 
+            background: linear-gradient(to bottom, transparent 0%, var(--dark) 100%); 
+        }
+
+        #status { 
+            position: fixed; 
+            bottom: 10px; 
+            left: 10px; 
+            font-style: italic; 
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="editor">
+            <textarea id="editor" placeholder="Start typing..."></textarea>
+            <div class="hardcore"></div>
+        </div>
+    </div>
+    <div id="status">Status: Ready</div>
+
+    <script src="/scripts/blur.js"></script>
+
+</body>
+</html>
