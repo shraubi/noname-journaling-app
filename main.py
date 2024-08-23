@@ -1,60 +1,66 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-import time
-import uvicorn
-from threading import Lock
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.textinput import TextInput
+from kivy.uix.label import Label
+from kivy.clock import Clock
+from kivy.core.window import Window
+from kivy.utils import get_color_from_hex
 
-app = FastAPI()
-app.mount("/scripts", StaticFiles(directory="scripts"), name="scripts")
-templates = Jinja2Templates(directory="templates")
+class DangerousWritingApp(App):
+    def build(self):
+        self.idle_threshold = 5  # 5 seconds before text deletion
+        self.dim_threshold = 2   # 2 seconds before the screen dims red
+        self.idle_event = None
+        self.dim_event = None
 
-class Stroke(BaseModel):
-    key: str
-    text: str
+        # Main layout
+        self.layout = BoxLayout(orientation='vertical')
 
-class Editor:
-    def __init__(self):
-        self.lock = Lock()
-        self.text = ""
-        self.letter = ""
-        self.last_stroke_time = time.time()
-        self.blur_threshold = 2  # when start blurring
-        self.idle_threshold = 5  # when delete text
+        # Main text editor
+        self.text_input = TextInput(multiline=True, font_size=20)
+        self.text_input.bind(text=self.reset_timer_and_update_word_count)
+        self.layout.add_widget(self.text_input)
 
-    def handle_stroke(self, key: str, text: str):
-        with self.lock:
-            self.text = text
-            self.letter = key
-            self.last_stroke_time = time.time()
-        return {"text": self.text, "letter": self.letter, "blur": False, "idle": False}
+        # Word count label
+        self.word_count_label = Label(text="Words: 0", size_hint=(1, 0.1))
+        self.layout.add_widget(self.word_count_label)
 
-    def check_idle(self):
-        with self.lock:
-            current_time = time.time()
-            time_since_last_stroke = current_time - self.last_stroke_time
-            blur = time_since_last_stroke > self.blur_threshold
-            idle = time_since_last_stroke > self.idle_threshold
-            if idle:
-                self.text = "" 
-                self.letter = ""
-        return {"text": self.text, "letter": self.letter, "blur": blur, "idle": idle}
+        # Notification label
+        self.notification_label = Label(text="", color=(1, 0, 0, 1), size_hint=(1, 0.1))
+        self.layout.add_widget(self.notification_label)
 
-editor = Editor()
+        # Start the idle and dim timers
+        self.reset_timer_and_update_word_count()
 
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+        return self.layout
 
-@app.post("/stroke")
-async def stroke(stroke_data: Stroke):
-    return editor.handle_stroke(stroke_data.key, stroke_data.text)
+    def reset_timer_and_update_word_count(self, *args):
+        if self.idle_event:
+            self.idle_event.cancel()
+        if self.dim_event:
+            self.dim_event.cancel()
 
-@app.get("/check-idle")
-async def check_idle():
-    return editor.check_idle()
+        self.idle_event = Clock.schedule_once(self.clear_text, self.idle_threshold)
+        self.dim_event = Clock.schedule_once(self.apply_red_dim, self.dim_threshold)
+        self.clear_red_dim()
+        self.update_word_count()
+        self.notification_label.text = ""
+
+    def clear_text(self, *args):
+        self.text_input.text = ""
+        self.notification_label.text = "Text deleted due to idling!"
+        self.clear_red_dim()
+
+    def apply_red_dim(self, *args):
+        Window.clearcolor = get_color_from_hex("#FF6666")  # Light red background
+
+    def clear_red_dim(self):
+        Window.clearcolor = get_color_from_hex("#FFFFFF")  # Reset to white background
+
+    def update_word_count(self):
+        text = self.text_input.text
+        word_count = len(text.split())
+        self.word_count_label.text = f"Words: {word_count}"
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    DangerousWritingApp().run()
